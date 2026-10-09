@@ -520,6 +520,41 @@ $("f").addEventListener("submit", e => {
 });
 
 renderStock();
+/* Stock en direct : lu dans le Google Sheet « Stock site DSA » rempli par le Studio Site */
+(function(){
+  const SHEET = "1zFC5ymWnyzZL_nGXaYGfoQbH2r7Wg0vQFILsxUlIaz4";
+  const val = c => (c && c.v != null) ? String(c.v) : "";
+  const num = c => { const x = c && c.v != null ? String(c.v).replace(/[^\d]/g, "") : ""; return x; };
+  window.__dsaStock = function(res){
+    try {
+      if (!res || res.status === "error" || !res.table) return;
+      const labels = res.table.cols.map(c => (c.label || "").trim());
+      const ix = n => labels.indexOf(n);
+      const list = [];
+      (res.table.rows || []).forEach(r => {
+        const c = r.c || [];
+        const g = n => c[ix(n)];
+        if (!val(g("id")) || val(g("en_ligne")).toUpperCase() === "NON") return;
+        const ids = val(g("photos")).split(/\s+/).filter(Boolean);
+        list.push({
+          titre: [val(g("titre")), val(g("version"))].filter(Boolean).join(" "),
+          annee: num(g("annee")), km: num(g("km")), prix: num(g("prix")),
+          carbu: val(g("carburant")), boite: val(g("boite")),
+          statut: val(g("statut")) || "Disponible",
+          desc: [val(g("point_fort")), val(g("description"))].filter(Boolean).join(" · "),
+          photos: ids.map(id => "https://lh3.googleusercontent.com/d/" + id + "=w1600"),
+          ajout: +num(g("ajout")) || 0
+        });
+      });
+      stock = list;
+      renderStock();
+    } catch(e) {}
+  };
+  const s = document.createElement("script");
+  s.src = "https://docs.google.com/spreadsheets/d/" + SHEET + "/gviz/tq?tqx=out:json;responseHandler:__dsaStock&sheet=Stock&headers=1&_=" + Date.now();
+  s.async = true;
+  document.body.appendChild(s);
+})();
 
 })();
 </script>
